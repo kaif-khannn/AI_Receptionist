@@ -26,7 +26,7 @@ def test_signup_creates_tenant_owner_and_session(db_client: TestClient, owner_ur
 
     me = db_client.get("/api/v1/me")
     assert me.status_code == 200
-    assert me.json()["user"]["email"] == "owner@abc-heating.test"
+    assert me.json()["user"]["email"] == "owner@abc-heating.example.com"
 
     rows = run_sql(owner_url, "SELECT company_name FROM businesses")
     assert [r.company_name for r in rows] == ["ABC Heating"]
@@ -46,7 +46,7 @@ def test_session_cookies_are_httponly(db_client: TestClient) -> None:
         json={
             "company_name": "ABC Heating",
             "full_name": "Owner",
-            "email": "o@abc.test",
+            "email": "o@abc.example.com",
             "password": PASSWORD,
         },
     )
@@ -59,13 +59,13 @@ def test_session_cookies_are_httponly(db_client: TestClient) -> None:
 
 
 def test_duplicate_email_is_rejected_case_insensitively(db_client: TestClient) -> None:
-    signup(db_client, email="owner@abc.test")
+    signup(db_client, email="owner@abc.example.com")
     response = db_client.post(
         "/api/v1/auth/signup",
         json={
             "company_name": "Other Co",
             "full_name": "X",
-            "email": "OWNER@abc.test",
+            "email": "OWNER@abc.example.com",
             "password": PASSWORD,
         },
     )
@@ -76,7 +76,12 @@ def test_duplicate_email_is_rejected_case_insensitively(db_client: TestClient) -
 def test_weak_password_rejected_without_echoing_it(db_client: TestClient) -> None:
     response = db_client.post(
         "/api/v1/auth/signup",
-        json={"company_name": "ABC", "full_name": "X", "email": "a@b.test", "password": "short"},
+        json={
+            "company_name": "ABC",
+            "full_name": "X",
+            "email": "a@b.example.com",
+            "password": "short",
+        },
     )
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "validation_error"
@@ -84,29 +89,33 @@ def test_weak_password_rejected_without_echoing_it(db_client: TestClient) -> Non
 
 
 def test_login_success_and_failure(db_client: TestClient) -> None:
-    signup(db_client, email="owner@abc.test")
+    signup(db_client, email="owner@abc.example.com")
     db_client.cookies.clear()
-    assert login(db_client, "owner@abc.test", "wrong password!!") == 401
-    assert login(db_client, "nobody@abc.test") == 401
-    assert login(db_client, "Owner@ABC.test") == 200
+    assert login(db_client, "owner@abc.example.com", "wrong password!!") == 401
+    assert login(db_client, "nobody@abc.example.com") == 401
+    assert login(db_client, "Owner@ABC.Example.com") == 200
     assert db_client.get("/api/v1/me").status_code == 200
 
 
 def test_unknown_email_and_wrong_password_look_identical(db_client: TestClient) -> None:
-    signup(db_client, email="owner@abc.test")
-    a = db_client.post("/api/v1/auth/login", json={"email": "owner@abc.test", "password": "nope"})
-    b = db_client.post("/api/v1/auth/login", json={"email": "ghost@abc.test", "password": "nope"})
+    signup(db_client, email="owner@abc.example.com")
+    a = db_client.post(
+        "/api/v1/auth/login", json={"email": "owner@abc.example.com", "password": "nope"}
+    )
+    b = db_client.post(
+        "/api/v1/auth/login", json={"email": "ghost@abc.example.com", "password": "nope"}
+    )
     assert a.status_code == b.status_code == 401
     assert a.json()["error"]["message"] == b.json()["error"]["message"]
 
 
 def test_account_locks_after_repeated_failures(db_client: TestClient, owner_url: str) -> None:
-    signup(db_client, email="owner@abc.test")
+    signup(db_client, email="owner@abc.example.com")
     db_client.cookies.clear()
     for _ in range(5):
-        assert login(db_client, "owner@abc.test", "wrong password!!") == 401
+        assert login(db_client, "owner@abc.example.com", "wrong password!!") == 401
     # Even the right password is refused while locked.
-    assert login(db_client, "owner@abc.test") == 429
+    assert login(db_client, "owner@abc.example.com") == 429
     (row,) = run_sql(owner_url, "SELECT locked_until IS NOT NULL AS locked FROM users")
     assert row.locked
 
@@ -162,7 +171,7 @@ def test_logout_revokes_session_immediately(db_client: TestClient) -> None:
 def test_cross_origin_state_change_blocked(db_client: TestClient) -> None:
     response = db_client.post(
         "/api/v1/auth/login",
-        json={"email": "a@b.test", "password": "x"},
+        json={"email": "a@b.example.com", "password": "x"},
         headers={"Origin": "https://evil.example"},
     )
     assert response.status_code == 403
@@ -176,7 +185,7 @@ def test_signup_can_be_disabled(db_settings: Settings) -> None:
             json={
                 "company_name": "ABC",
                 "full_name": "X",
-                "email": "a@b.test",
+                "email": "a@b.example.com",
                 "password": PASSWORD,
             },
         )

@@ -115,7 +115,7 @@ def db_client(db_settings: Settings) -> Iterator[TestClient]:
 def signup(
     client: TestClient,
     *,
-    email: str = "owner@abc-heating.test",
+    email: str = "owner@abc-heating.example.com",
     company: str = "ABC Heating",
     password: str = "correct horse battery",
 ) -> dict[str, Any]:

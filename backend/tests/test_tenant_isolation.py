@@ -27,11 +27,11 @@ def as_tenant(tenant_id: str, *statements: str) -> tuple[str, ...]:
 
 @pytest.fixture
 def two_tenants(db_client: TestClient) -> tuple[str, str]:
-    a = signup(db_client, email="owner@abc.test", company="ABC Heating")["tenant"]["id"]
+    a = signup(db_client, email="owner@abc.example.com", company="ABC Heating")["tenant"]["id"]
     db_client.cookies.clear()
-    b = signup(db_client, email="owner@london-boiler.test", company="London Boiler Care")["tenant"][
-        "id"
-    ]
+    b = signup(db_client, email="owner@london-boiler.example.com", company="London Boiler Care")[
+        "tenant"
+    ]["id"]
     return a, b
 
 
@@ -93,7 +93,7 @@ def test_audit_log_is_append_only_for_app(app_url: str, two_tenants: tuple[str, 
 
 
 def test_login_lookup_exposes_only_ids(app_url: str, two_tenants: tuple[str, str]) -> None:
-    rows = run_sql(app_url, "SELECT * FROM auth_lookup_user('owner@abc.test')")
+    rows = run_sql(app_url, "SELECT * FROM auth_lookup_user('owner@abc.example.com')")
     assert len(rows) == 1
     assert set(rows[0]._fields) == {"user_id", "tenant_id"}
 
@@ -122,9 +122,9 @@ def test_app_refuses_to_start_with_an_rls_bypassing_role(owner_url: str) -> None
 
 
 def test_api_never_returns_another_tenants_data(db_client: TestClient) -> None:
-    signup(db_client, email="owner@abc.test", company="ABC Heating")
+    signup(db_client, email="owner@abc.example.com", company="ABC Heating")
     db_client.cookies.clear()
-    signup(db_client, email="owner@london-boiler.test", company="London Boiler Care")
+    signup(db_client, email="owner@london-boiler.example.com", company="London Boiler Care")
     me = db_client.get("/api/v1/me").json()
     assert me["tenant"]["name"] == "London Boiler Care"
-    assert me["user"]["email"] == "owner@london-boiler.test"
+    assert me["user"]["email"] == "owner@london-boiler.example.com"

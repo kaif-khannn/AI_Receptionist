@@ -38,10 +38,12 @@ def two_tenants(db_client: TestClient) -> tuple[str, str]:
 def test_tenant_sees_only_its_own_rows(app_url: str, two_tenants: tuple[str, str]) -> None:
     a, _ = two_tenants
     for table in TENANT_TABLES:
-        rows = run_sql(app_url, *as_tenant(a, f"SELECT DISTINCT tenant_id::text AS t FROM {table}"))
-        assert [r.t for r in rows] == [a], table
-    rows = run_sql(app_url, *as_tenant(a, "SELECT id::text AS t FROM tenants"))
-    assert [r.t for r in rows] == [a]
+        rows = run_sql(
+            app_url, *as_tenant(a, f"SELECT DISTINCT tenant_id::text AS tid FROM {table}")
+        )
+        assert [r.tid for r in rows] == [a], table
+    rows = run_sql(app_url, *as_tenant(a, "SELECT id::text AS tid FROM tenants"))
+    assert [r.tid for r in rows] == [a]
 
 
 def test_no_tenant_context_sees_nothing(app_url: str, two_tenants: tuple[str, str]) -> None:

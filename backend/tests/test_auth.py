@@ -4,7 +4,7 @@ from pydantic import SecretStr
 
 from app.core.config import Settings
 from app.main import create_app
-from tests.conftest import run_sql, signup
+from tests.conftest import replace_cookie, run_sql, signup
 
 pytestmark = pytest.mark.db
 
@@ -129,7 +129,8 @@ def test_me_requires_login(db_client: TestClient) -> None:
 def test_tampered_token_rejected(db_client: TestClient) -> None:
     signup(db_client)
     token = db_client.cookies["access_token"]
-    db_client.cookies.set("access_token", token[:-4] + "AAAA")
+    header_and_payload = token.rsplit(".", 1)[0]
+    replace_cookie(db_client, "access_token", header_and_payload + "." + "A" * 43)
     assert db_client.get("/api/v1/me").status_code == 401
 
 
@@ -153,9 +154,10 @@ def test_refresh_rotates_and_detects_reuse(db_client: TestClient) -> None:
     assert db_client.get("/api/v1/me").status_code == 200
 
     # Replaying the old refresh token (e.g. stolen) revokes the whole session.
-    db_client.cookies.set("refresh_token", old_refresh, path="/api/v1/auth")
+    replace_cookie(db_client, "refresh_token", old_refresh, path="/api/v1/auth")
     assert db_client.post("/api/v1/auth/refresh").status_code == 401
-    db_client.cookies.set("refresh_token", new_refresh, path="/api/v1/auth")
+    # ...so the legitimate newer token is dead too.
+    replace_cookie(db_client, "refresh_token", new_refresh, path="/api/v1/auth")
     assert db_client.post("/api/v1/auth/refresh").status_code == 401
 
 
@@ -163,6 +165,7 @@ def test_logout_revokes_session_immediately(db_client: TestClient) -> None:
     signup(db_client)
     access = db_client.cookies["access_token"]
     assert db_client.post("/api/v1/auth/logout").status_code == 204
+    assert "access_token" not in db_client.cookies  # cleared by the server
     # Even a copy of the still-unexpired access token no longer works.
     db_client.cookies.set("access_token", access)
     assert db_client.get("/api/v1/me").status_code == 401

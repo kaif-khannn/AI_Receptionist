@@ -112,6 +112,17 @@ def db_client(db_settings: Settings) -> Iterator[TestClient]:
         yield test_client
 
 
+def replace_cookie(client: TestClient, name: str, value: str, path: str = "/") -> None:
+    """Overwrite a cookie the server set. ``client.cookies.set`` alone would add a
+    second cookie alongside the original, and the server might read the original."""
+    existing = [c for c in client.cookies.jar if c.name == name and c.path == path]
+    domain = existing[0].domain if existing else ""
+    for cookie in existing:
+        client.cookies.jar.clear(cookie.domain, cookie.path, cookie.name)
+    client.cookies.set(name, value, domain=domain, path=path)
+    assert [c.value for c in client.cookies.jar if c.name == name and c.path == path] == [value]
+
+
 def signup(
     client: TestClient,
     *,

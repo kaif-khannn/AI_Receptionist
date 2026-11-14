@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (lint, types, tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: owner
+          POSTGRES_PASSWORD: owner_ci
+          POSTGRES_DB: hvac_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U owner -d hvac_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      # Owner runs migrations; the app and RLS tests use the non-owner app_user role.
+      TEST_MIGRATIONS_DATABASE_URL: postgresql://owner:owner_ci@localhost:5432/hvac_test
+      TEST_DATABASE_URL: postgresql://app_user:app_ci@localhost:5432/hvac_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: mypy app tests
+      - name: Create app role
+        run: psql "$TEST_MIGRATIONS_DATABASE_URL" -c "CREATE ROLE app_user LOGIN PASSWORD 'app_ci'"
+      - run: pytest
+
+  frontend:
+    name: Frontend (lint, types, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+
+  docker:
+    name: Backend image builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -72,8 +72,8 @@ npm run lint; npm run typecheck; npm run build
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Repo, tooling, CI, docs | ✅ Done |
-| 1 | Database, migrations, tenants + RLS, auth | — |
-| 2 | Business onboarding: profile, services, packages, areas, engineers | — |
+| 1 | Database, migrations, tenants + RLS, auth | ✅ Done |
+| 2 | Business onboarding: profile, services, packages, areas, engineers | ✅ Done |
 | 3 | Voice core: Vapi, tools, safety, transcripts, kill switch | — |
 | 4 | Leads + outbox worker: post-call processing, notifications | — |
 | 5 | Bookings, availability, calendar sync | — |

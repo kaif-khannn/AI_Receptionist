@@ -112,6 +112,23 @@ def db_client(db_settings: Settings) -> Iterator[TestClient]:
         yield test_client
 
 
+def add_user(owner_url: str, tenant_id: str, email: str, role: str, password: str) -> None:
+    """Insert a user directly (no invite flow yet). Runs as the owner role."""
+    from argon2 import PasswordHasher
+
+    run_sql(
+        owner_url,
+        "INSERT INTO users (id, tenant_id, email, password_hash, full_name, role, status)"
+        " VALUES (gen_random_uuid(), :tenant_id, :email, :hash, 'Test User', :role, 'active')",
+        params={
+            "tenant_id": tenant_id,
+            "email": email,
+            "hash": PasswordHasher().hash(password),
+            "role": role,
+        },
+    )
+
+
 def replace_cookie(client: TestClient, name: str, value: str, path: str = "/") -> None:
     """Overwrite a cookie the server set. ``client.cookies.set`` alone would add a
     second cookie alongside the original, and the server might read the original."""

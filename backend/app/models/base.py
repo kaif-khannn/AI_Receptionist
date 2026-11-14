@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, MetaData, func
+from sqlalchemy import DateTime, ForeignKey, ForeignKeyConstraint, MetaData, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 
 # Deterministic constraint names so Alembic migrations are stable.
@@ -27,6 +27,17 @@ class Timestamps:
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+def tenant_fk(column: str, target: str, *, ondelete: str) -> ForeignKeyConstraint:
+    """FK on (tenant_id, <column>) so a row can never reference another tenant's row.
+
+    Postgres FK checks bypass RLS, so a plain FK on the ID alone would let tenant A link
+    to tenant B's service if it knew the UUID. The composite key makes that impossible.
+    """
+    return ForeignKeyConstraint(
+        ["tenant_id", column], [f"{target}.tenant_id", f"{target}.id"], ondelete=ondelete
     )
 
 

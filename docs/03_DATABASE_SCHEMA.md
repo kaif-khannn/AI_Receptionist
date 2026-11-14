@@ -9,6 +9,7 @@ Postgres (Neon) · SQLAlchemy 2 · Alembic · pgvector. *Full DDL is added in Ph
 - `FORCE ROW LEVEL SECURITY` is deliberately **not** used: the narrow `SECURITY DEFINER` lookup functions (e.g. `auth_lookup_user`, which returns only user and tenant IDs at login) run as the owner and need to see across tenants.
 - Tenant set per transaction with `set_config('app.tenant_id', …, true)` from a SQLAlchemy `after_begin` hook, so it can't be forgotten and works with Neon's transaction-mode pooler.
 - `audit_logs` is append-only for the app role (no `UPDATE`/`DELETE` grant).
+- **Cross-table references use composite foreign keys** `(tenant_id, x_id) → x(tenant_id, id)`. Postgres FK checks bypass RLS, so a plain FK on `x_id` alone would let one tenant link its rows to another tenant's (e.g. a package pointing at someone else's service) if it knew the UUID. Each referenced table has `UNIQUE (tenant_id, id)` for this.
 - Primary keys: UUID (v7 where available, for index locality).
 - Timestamps: `timestamptz` in UTC; displayed in the business timezone (default `Europe/London`).
 - Phone numbers: E.164. Money: integer minor units (`price_minor`, pence) + `currency` (`GBP`).

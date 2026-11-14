@@ -31,6 +31,11 @@ class Forbidden(AppError):
         super().__init__(403, "forbidden", message)
 
 
+class NotFound(AppError):
+    def __init__(self, what: str = "Resource") -> None:
+        super().__init__(404, "not_found", f"{what} not found")
+
+
 class Conflict(AppError):
     def __init__(self, code: str, message: str) -> None:
         super().__init__(409, code, message)

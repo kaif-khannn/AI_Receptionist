@@ -14,10 +14,19 @@ Interactive spec: `/docs` (non-production). The frontend's TypeScript client is 
 | Method | Path | Purpose | Phase |
 |---|---|---|---|
 | GET | /health/live, /health/ready | Probes | 0 ✅ |
-| POST | /api/v1/auth/login, /logout, /refresh | Session | 1 |
-| GET | /api/v1/me | Current user + tenant | 1 |
-| GET/PATCH | /api/v1/business | Business profile | 2 |
-| CRUD | /api/v1/services, /packages, /service-areas, /engineers | Catalogue + team | 2 |
+| POST | /api/v1/auth/signup, /login, /logout, /refresh | Session | 1 ✅ |
+| GET | /api/v1/me | Current user + tenant | 1 ✅ |
+| GET/PATCH | /api/v1/business | Business profile (UK phone/postcode normalised) | 2 ✅ |
+| PUT | /api/v1/business/hours | Replace opening hours | 2 ✅ |
+| PUT | /api/v1/business/ai | Kill switch (owner only) | 2 ✅ |
+| CRUD | /api/v1/services | Services; 409 on duplicate name or delete-with-packages | 2 ✅ |
+| CRUD | /api/v1/packages | Packages with features; prices in pence + `price_display` | 2 ✅ |
+| GET/PUT | /api/v1/service-areas | Covered postcode areas/districts | 2 ✅ |
+| POST | /api/v1/service-areas/check | Is a postcode covered? | 2 ✅ |
+| CRUD | /api/v1/engineers | Engineers with skills and weekly hours | 2 ✅ |
+| GET/POST/DELETE | /api/v1/engineers/{id}/time-off | Holidays, sickness | 2 ✅ |
+
+**Roles:** owner and manager can change configuration; engineer is read-only; the AI kill switch is owner-only. Other tenants' resources return 404.
 | POST | /api/v1/voice/inbound | Vapi assistant-request | 3 |
 | POST | /api/v1/voice/tool-calls | Vapi tool calls | 3 |
 | POST | /api/v1/voice/events | Vapi status / end-of-call | 3 |

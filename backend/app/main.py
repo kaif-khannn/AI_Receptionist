@@ -13,7 +13,7 @@ from app.core.db import Database
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging
 from app.middleware.request_context import REQUEST_ID_HEADER, RequestContextMiddleware
-from app.routers import auth, health
+from app.routers import auth, business, catalogue, engineers, health
 from app.services.auth import AuthService
 
 
@@ -68,6 +68,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(auth.router)
+    app.include_router(business.router)
+    app.include_router(catalogue.router)
+    app.include_router(engineers.router)
     return app
 
 

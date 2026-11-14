@@ -100,7 +100,7 @@ def test_business_update_normalises_uk_details(owner: TestClient) -> None:
         "/api/v1/business",
         json={
             "phone_e164": "07911 123456",
-            "transfer_number_e164": "+44 7911 654321",
+            "transfer_number_e164": "+44 7400 123456",
             "postcode": "sw1a1aa",
             "website": "abc-heating.example.com",
             "emergency_policy": "transfer",
@@ -109,7 +109,7 @@ def test_business_update_normalises_uk_details(owner: TestClient) -> None:
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["phone_e164"] == "+447911123456"
-    assert body["transfer_number_e164"] == "+447911654321"
+    assert body["transfer_number_e164"] == "+447400123456"
     assert body["postcode"] == "SW1A 1AA"
     assert body["website"] == "https://abc-heating.example.com"
     assert body["emergency_policy"] == "transfer"
